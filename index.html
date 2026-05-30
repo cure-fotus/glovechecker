@@ -157,27 +157,48 @@ select{
 .cross-table tr.total-row td{background:var(--accent-l);font-weight:700;color:var(--accent);font-family:'DM Mono',monospace}
 
 /* ══ COUNT CELL ══ */
+/* ── カウンターセル：縦3段レイアウト（－ 数値 ＋）── */
 .count-cell{
-  position:relative;width:68px;height:50px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:var(--radius-sm);cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:72px;gap:0;
   user-select:none;-webkit-user-select:none;
-  transition:background .12s,transform .1s;
 }
-.count-cell:active{transform:scale(.91)}
-.count-num{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--text1);pointer-events:none}
-.count-cell .minus-btn{
-  position:absolute;bottom:2px;right:3px;width:17px;height:17px;
-  background:rgba(0,0,0,0.07);border-radius:50%;
+.count-btn{
+  width:60px;height:36px;
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:var(--text2);pointer-events:auto;cursor:pointer;
+  border-radius:var(--radius-sm);border:none;
+  font-size:20px;font-weight:700;font-family:'DM Mono',monospace;
+  cursor:pointer;transition:background .12s,transform .1s;
+  -webkit-tap-highlight-color:transparent;
+  line-height:1;
 }
-.count-cell .minus-btn:active{background:rgba(0,0,0,0.2)}
-.heat-0{background:#F8FAFC}
-.heat-1{background:#EAF2FB;}.heat-1 .count-num{color:#4A7FC1}
-.heat-2{background:#C8DEFA;}.heat-2 .count-num{color:#2D62A3}
-.heat-3{background:#93BEF5;}.heat-3 .count-num{color:#1A3F70}
-.heat-4{background:#FDECEA;}.heat-4 .count-num{color:#C0392B;font-weight:700}
+.count-btn:active{transform:scale(.88)}
+.count-btn-plus{
+  background:var(--accent);color:#fff;
+  border-radius:0 0 var(--radius-sm) var(--radius-sm);
+}
+.count-btn-plus:active{background:#3568a8}
+.count-btn-minus{
+  background:var(--surface2);color:var(--text2);
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+}
+.count-btn-minus:active{background:#e0e5ee}
+.count-num-wrap{
+  width:60px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  border-left:1px solid var(--border);border-right:1px solid var(--border);
+  transition:background .12s;
+}
+.count-num{
+  font-family:'DM Mono',monospace;font-size:18px;font-weight:600;
+  color:var(--text1);pointer-events:none;line-height:1;
+}
+.heat-0 .count-num-wrap{background:#F8FAFC}
+.heat-1 .count-num-wrap{background:#EAF2FB;}.heat-1 .count-num{color:#4A7FC1}
+.heat-2 .count-num-wrap{background:#C8DEFA;}.heat-2 .count-num{color:#2D62A3}
+.heat-3 .count-num-wrap{background:#93BEF5;}.heat-3 .count-num{color:#1A3F70}
+.heat-4 .count-num-wrap{background:#FDECEA;}.heat-4 .count-num{color:#C0392B;font-weight:700}
 
 /* ══ ANALYSIS ══ */
 .analysis-list{display:flex;flex-direction:column;gap:10px}
@@ -261,7 +282,7 @@ select{
   .header-title{font-size:14px}
   .main{padding:10px}
   .count-num{font-size:15px}
-  .count-cell{width:58px;height:44px}
+  .count-cell{width:68px}
 }
 </style>
 </head>
@@ -340,7 +361,7 @@ select{
   <div class="card">
     <div class="card-head">
       <span class="card-title" id="input-title">—</span>
-      <span class="hint">タップ → +1　　右下「－」→ −1</span>
+      <span class="hint">【＋】で増加　【－】で減少</span>
     </div>
     <div class="card-body" style="padding:8px">
       <div class="cross-wrap"><table class="cross-table" id="input-table"></table></div>
@@ -897,14 +918,17 @@ function renderInput(){
       const v=(data[mi][wi]&&data[mi][wi][ri]&&data[mi][wi][ri][si])||0;
       rowSum+=v;
       const hl=heatLevel(v,20);
-      html+=`<td>
-        <div class="count-cell heat-${hl}"
-             ontouchstart="incCell(${mi},${wi},${ri},${si},1,this)"
-             onclick="incCell(${mi},${wi},${ri},${si},1,this)">
-          <span class="count-num" id="cn-${mi}-${wi}-${ri}-${si}">${v}</span>
-          <span class="minus-btn"
-            ontouchstart="event.stopPropagation();incCell(${mi},${wi},${ri},${si},-1,this.parentElement)"
-            onclick="event.stopPropagation();incCell(${mi},${wi},${ri},${si},-1,this.parentElement)">－</span>
+      html+=`<td style="padding:3px 2px">
+        <div class="count-cell heat-${hl}" id="cc-${mi}-${wi}-${ri}-${si}">
+          <button class="count-btn count-btn-minus"
+            ontouchstart="event.preventDefault();incCell(${mi},${wi},${ri},${si},-1,'${mi}','${wi}','${ri}','${si}')"
+            onclick="incCell(${mi},${wi},${ri},${si},-1,'${mi}','${wi}','${ri}','${si}')">－</button>
+          <div class="count-num-wrap">
+            <span class="count-num" id="cn-${mi}-${wi}-${ri}-${si}">${v}</span>
+          </div>
+          <button class="count-btn count-btn-plus"
+            ontouchstart="event.preventDefault();incCell(${mi},${wi},${ri},${si},1,'${mi}','${wi}','${ri}','${si}')"
+            onclick="incCell(${mi},${wi},${ri},${si},1,'${mi}','${wi}','${ri}','${si}')">＋</button>
         </div></td>`;
     });
     html+=`<td class="total-cell" id="rt-${mi}-${wi}-${ri}">${rowSum}</td></tr>`;
@@ -918,18 +942,24 @@ function renderInput(){
   tbl.innerHTML=html;
 }
 
-function incCell(mi,wi,ri,si,delta,cellEl){
+function incCell(mi,wi,ri,si,delta,smi,swi,sri,ssi){
   if(!data[mi][wi]||!data[mi][wi][ri])return;
   data[mi][wi][ri][si]=Math.max(0,(data[mi][wi][ri][si]||0)+delta);
   markDirty();
   const v=data[mi][wi][ri][si];
+  // 数値更新
   const numEl=document.getElementById(`cn-${mi}-${wi}-${ri}-${si}`);
   if(numEl)numEl.textContent=v;
-  cellEl.className=`count-cell heat-${heatLevel(v,20)}`;
+  // ヒートクラス更新
+  const cellEl=document.getElementById(`cc-${mi}-${wi}-${ri}-${si}`);
+  if(cellEl)cellEl.className=`count-cell heat-${heatLevel(v,20)}`;
+  // 行合計
   let rSum=0;SCENES.forEach((_,s)=>rSum+=(data[mi][wi][ri][s]||0));
   const rt=document.getElementById(`rt-${mi}-${wi}-${ri}`);if(rt)rt.textContent=rSum;
+  // 列合計
   let cSum=0;ROLES.forEach((_,r)=>cSum+=(data[mi][wi][r]&&data[mi][wi][r][si])||0);
   const ct=document.getElementById(`ct-${mi}-${wi}-${si}`);if(ct)ct.textContent=cSum;
+  // 全体合計
   const gt=document.getElementById(`gt-${mi}-${wi}`);
   if(gt)gt.textContent=wardTotal(getMonthSlice(String(mi)),wi);
 }
