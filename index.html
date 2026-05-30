@@ -1183,8 +1183,31 @@ window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.return
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('SW registered:', reg.scope))
+      .then(reg => {
+        console.log('SW registered:', reg.scope);
+
+        // 新しいService Workerが待機状態になったら自動で切り替え
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // 新バージョンが準備できた → 即座に切り替え指示
+              newWorker.postMessage('SKIP_WAITING');
+              console.log('New version activated automatically');
+            }
+          });
+        });
+
+        // 定期的に更新チェック（アプリ起動中も30分ごとに確認）
+        setInterval(() => reg.update(), 30 * 60 * 1000);
+      })
       .catch(err => console.warn('SW registration failed:', err));
+
+    // Service Workerが切り替わったらページを自動リロード
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('Controller changed, reloading...');
+      window.location.reload();
+    });
   });
 }
 </script>
