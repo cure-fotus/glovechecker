@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1A2535">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="手袋チェック">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>不要な手袋チェック</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F6F8;--surface:#FFFFFF;--surface2:#F0F3F7;--border:#DDE3EC;
+  --text1:#1A2535;--text2:#5A6A80;--text3:#9AAABB;
+  --accent:#4A7FC1;--accent-l:#D6E5F7;
+  --red:#E05C5C;--red-l:#FCEAEA;
+  --green:#4CAF82;--green-l:#E2F5EC;
+  --orange:#E8954A;--orange-l:#FDF0E2;
+  --purple:#7C5CBF;--purple-l:#EDE8F8;
+  --radius:12px;--radius-sm:8px;
+  --shadow:0 2px 12px rgba(26,37,53,0.08);
+  --shadow-lg:0 8px 32px rgba(26,37,53,0.14);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);font-family:'Noto Sans JP',sans-serif;color:var(--text1);font-size:15px}
+body{overflow-x:hidden}
+
+/* ══ LOGIN SCREEN ══ */
+.login-screen{
+  position:fixed;inset:0;background:linear-gradient(145deg,#1A2535 0%,#2C3E5A 60%,#1F3055 100%);
+  display:flex;align-items:center;justify-content:center;z-index:500;
+  transition:opacity .4s;
+}
+.login-screen.hidden{opacity:0;pointer-events:none}
+.login-box{
+  background:var(--surface);border-radius:20px;
+  padding:36px 32px;width:100%;max-width:360px;
+  box-shadow:var(--shadow-lg);
+  display:flex;flex-direction:column;align-items:center;gap:20px;
+}
+.login-icon{font-size:44px;margin-bottom:4px}
+.login-title{font-size:20px;font-weight:700;color:var(--text1);text-align:center}
+.login-sub{font-size:12px;color:var(--text3);text-align:center;margin-top:-12px}
+.pin-display{
+  display:flex;gap:12px;justify-content:center;margin:4px 0;
+}
+.pin-dot{
+  width:18px;height:18px;border-radius:50%;
+  border:2px solid var(--border);background:var(--surface2);
+  transition:background .15s,border-color .15s;
+}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-dot.error{background:var(--red);border-color:var(--red)}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%}
+.numpad-btn{
+  height:62px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--surface2);
+  font-size:22px;font-weight:500;color:var(--text1);
+  cursor:pointer;transition:background .1s,transform .1s;
+  font-family:'DM Mono',monospace;
+  display:flex;align-items:center;justify-content:center;
+}
+.numpad-btn:active{background:var(--accent-l);transform:scale(.95)}
+.numpad-btn.del{font-size:18px;color:var(--text2)}
+.numpad-btn.empty{border:none;background:transparent;pointer-events:none}
+.login-error{font-size:12px;color:var(--red);min-height:16px;text-align:center}
+
+/* ══ HEADER ══ */
+.header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 16px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;box-shadow:var(--shadow);
+}
+.header-title{font-size:16px;font-weight:700;color:var(--text1)}
+.header-title span{color:var(--accent)}
+.header-actions{display:flex;gap:6px}
+
+/* ══ TABS ══ */
+.tabs{
+  display:flex;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 12px;overflow-x:auto;scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  padding:13px 14px;font-size:12px;font-weight:500;color:var(--text2);
+  border:none;background:none;border-bottom:2.5px solid transparent;
+  cursor:pointer;white-space:nowrap;font-family:'Noto Sans JP',sans-serif;
+  min-height:46px;transition:color .2s,border-color .2s;
+}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:active{opacity:.7}
+
+/* ══ MAIN ══ */
+.main{padding:14px;max-width:1100px;margin:0 auto}
+.section{display:none}.section.active{display:block}
+
+/* ══ CARDS ══ */
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.card-title{font-size:13px;font-weight:700;color:var(--text1)}
+.card-body{padding:14px}
+
+/* ══ BUTTONS ══ */
+.btn{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:9px 14px;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;font-family:'Noto Sans JP',sans-serif;
+  border:none;cursor:pointer;transition:opacity .15s,transform .1s;
+  min-height:42px;
+}
+.btn:active{opacity:.75;transform:scale(.97)}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-danger{background:var(--red);color:#fff}
+.btn-ghost{background:var(--surface2);color:var(--text1);border:1px solid var(--border)}
+.btn-success{background:var(--green);color:#fff}
+.btn-purple{background:var(--purple);color:#fff}
+.btn-sm{padding:6px 11px;font-size:11px;min-height:34px}
+
+/* ══ SELECTS ══ */
+select{
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text1);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 28px 8px 10px;cursor:pointer;min-height:42px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6A80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+}
+
+/* ══ METRICS ══ */
+.metrics{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:600px){.metrics{grid-template-columns:repeat(4,1fr)}}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+.metric-label{font-size:10px;color:var(--text3);margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase}
+.metric-value{font-size:24px;font-weight:700;color:var(--text1);font-family:'DM Mono',monospace;line-height:1}
+.metric-sub{font-size:11px;color:var(--text2);margin-top:3px}
+.metric-warn .metric-value{color:var(--red)}
+
+/* ══ CROSS TABLE ══ */
+.cross-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cross-table{border-collapse:collapse;min-width:100%;font-size:12px}
+.cross-table th{
+  background:var(--surface2);color:var(--text2);font-weight:500;font-size:10px;
+  padding:9px 6px;text-align:center;border:1px solid var(--border);
+  white-space:nowrap;
+}
+.cross-table th.row-header{position:sticky;left:0;z-index:2;background:var(--surface2)}
+.cross-table td{border:1px solid var(--border);text-align:center;padding:3px;background:var(--surface)}
+.cross-table td.label-cell{
+  background:var(--surface2);font-weight:500;font-size:11px;color:var(--text1);
+  padding:7px 10px;text-align:left;white-space:nowrap;position:sticky;left:0;z-index:1;
+}
+.cross-table td.total-cell{background:var(--accent-l);font-weight:700;color:var(--accent);font-family:'DM Mono',monospace}
+.cross-table tr.total-row td{background:var(--accent-l);font-weight:700;color:var(--accent);font-family:'DM Mono',monospace}
+
+/* ══ COUNT CELL ══ */
+.count-cell{
+  position:relative;width:68px;height:50px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+  transition:background .12s,transform .1s;
+}
+.count-cell:active{transform:scale(.91)}
+.count-num{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--text1);pointer-events:none}
+.count-cell .minus-btn{
+  position:absolute;bottom:2px;right:3px;width:17px;height:17px;
+  background:rgba(0,0,0,0.07);border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;color:var(--text2);pointer-events:auto;cursor:pointer;
+}
+.count-cell .minus-btn:active{background:rgba(0,0,0,0.2)}
+.heat-0{background:#F8FAFC}
+.heat-1{background:#EAF2FB;}.heat-1 .count-num{color:#4A7FC1}
+.heat-2{background:#C8DEFA;}.heat-2 .count-num{color:#2D62A3}
+.heat-3{background:#93BEF5;}.heat-3 .count-num{color:#1A3F70}
+.heat-4{background:#FDECEA;}.heat-4 .count-num{color:#C0392B;font-weight:700}
+
+/* ══ ANALYSIS ══ */
+.analysis-list{display:flex;flex-direction:column;gap:10px}
+.a-card{border-radius:var(--radius);padding:12px 14px;border-left:4px solid transparent}
+.a-card-warn{background:var(--red-l);border-color:var(--red)}
+.a-card-notice{background:var(--orange-l);border-color:var(--orange)}
+.a-card-good{background:var(--green-l);border-color:var(--green)}
+.a-card-title{font-size:13px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.a-card-body{font-size:11px;color:var(--text2);line-height:1.7}
+.badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700}
+.badge-warn{background:var(--red);color:#fff}
+.badge-notice{background:var(--orange);color:#fff}
+.badge-good{background:var(--green);color:#fff}
+
+/* ══ WARD MANAGEMENT ══ */
+.ward-list{display:flex;flex-direction:column;gap:8px}
+.ward-item{
+  display:flex;align-items:center;gap:10px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:10px 12px;
+}
+.ward-item-num{
+  font-family:'DM Mono',monospace;font-size:11px;color:var(--text3);
+  width:22px;flex-shrink:0;text-align:center;
+}
+.ward-item-name{
+  flex:1;font-size:14px;font-weight:500;color:var(--text1);
+  border:none;background:transparent;font-family:'Noto Sans JP',sans-serif;
+  padding:4px 6px;border-radius:5px;
+  transition:background .15s;min-width:0;
+}
+.ward-item-name:focus{outline:none;background:var(--surface);box-shadow:0 0 0 2px var(--accent)}
+.ward-item-name.editing{background:var(--surface);box-shadow:0 0 0 2px var(--accent)}
+.ward-item-actions{display:flex;gap:6px;flex-shrink:0}
+.ward-item-tag{
+  font-size:10px;color:var(--text3);background:var(--surface);
+  border:1px solid var(--border);border-radius:4px;padding:2px 6px;
+  white-space:nowrap;
+}
+.add-ward-row{
+  display:flex;gap:8px;align-items:center;margin-top:6px;
+}
+.add-ward-input{
+  flex:1;padding:10px 12px;border-radius:var(--radius-sm);
+  border:1.5px solid var(--border);background:var(--surface);
+  font-size:14px;font-family:'Noto Sans JP',sans-serif;color:var(--text1);
+  min-height:42px;
+}
+.add-ward-input:focus{outline:none;border-color:var(--accent)}
+
+/* ══ SAVE BANNER ══ */
+.save-banner{
+  position:fixed;bottom:16px;left:50%;transform:translateX(-50%);
+  background:var(--text1);color:#fff;border-radius:var(--radius);
+  padding:11px 18px;font-size:12px;font-weight:500;
+  box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:10px;z-index:200;
+  transition:opacity .3s;opacity:0;pointer-events:none;white-space:nowrap;
+}
+.save-banner.show{opacity:1;pointer-events:auto}
+
+/* ══ MISC ══ */
+.month-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.month-row label{font-size:12px;color:var(--text2);font-weight:500}
+.chart-wrap{position:relative;height:200px;margin-top:6px}
+.legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block}
+.label-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;color:var(--text2)}
+.hint{font-size:11px;color:var(--text3);margin-top:4px}
+.summary-table{width:100%;border-collapse:collapse;font-size:12px}
+.summary-table th{background:var(--surface2);padding:9px 10px;text-align:left;font-weight:500;color:var(--text2);font-size:10px;border-bottom:1px solid var(--border)}
+.summary-table td{padding:10px 10px;border-bottom:1px solid var(--border);color:var(--text1)}
+.summary-table tr:last-child td{border-bottom:none}
+.rank-num{font-family:'DM Mono',monospace;font-weight:700;color:var(--text3);width:24px;display:inline-block}
+.pct-bar{display:inline-block;height:5px;border-radius:3px;background:var(--accent-l);vertical-align:middle;margin-left:5px;position:relative;overflow:hidden}
+.pct-bar-fill{position:absolute;left:0;top:0;height:100%;border-radius:3px;background:var(--accent);transition:width .4s}
+.divider{height:1px;background:var(--border);margin:14px 0}
+.section-label{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.warn-box{background:var(--red-l);border:1px solid #F5C0C0;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:12px}
+
+@media(max-width:480px){
+  .header-title{font-size:14px}
+  .main{padding:10px}
+  .count-num{font-size:15px}
+  .count-cell{width:58px;height:44px}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════ -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-icon">🔒</div>
+    <div>
+      <div class="login-title">管理者ログイン</div>
+      <div class="login-sub" style="margin-top:4px">不要な手袋チェック</div>
+    </div>
+    <div class="pin-display" id="pin-display">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="numpad">
+      <button class="numpad-btn" ontouchstart="numInput('1')" onclick="numInput('1')">1</button>
+      <button class="numpad-btn" ontouchstart="numInput('2')" onclick="numInput('2')">2</button>
+      <button class="numpad-btn" ontouchstart="numInput('3')" onclick="numInput('3')">3</button>
+      <button class="numpad-btn" ontouchstart="numInput('4')" onclick="numInput('4')">4</button>
+      <button class="numpad-btn" ontouchstart="numInput('5')" onclick="numInput('5')">5</button>
+      <button class="numpad-btn" ontouchstart="numInput('6')" onclick="numInput('6')">6</button>
+      <button class="numpad-btn" ontouchstart="numInput('7')" onclick="numInput('7')">7</button>
+      <button class="numpad-btn" ontouchstart="numInput('8')" onclick="numInput('8')">8</button>
+      <button class="numpad-btn" ontouchstart="numInput('9')" onclick="numInput('9')">9</button>
+      <button class="numpad-btn empty"></button>
+      <button class="numpad-btn" ontouchstart="numInput('0')" onclick="numInput('0')">0</button>
+      <button class="numpad-btn del" ontouchstart="numDel()" onclick="numDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     APP
+══════════════════════════════════ -->
+<header class="header">
+  <div class="header-title"><span>手袋</span>チェック　管理ダッシュボード</div>
+  <div class="header-actions">
+    <button class="btn btn-success btn-sm" onclick="exportJSON()">💾 保存</button>
+    <button class="btn btn-ghost btn-sm" onclick="importJSON()">📂 読込</button>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">🔓</button>
+  </div>
+</header>
+<input type="file" id="file-input" accept=".json,application/json,text/plain" style="display:none" onchange="onFileSelected(event)">
+
+<nav class="tabs">
+  <button class="tab active" onclick="switchTab('input',this)">📋 入力</button>
+  <button class="tab" onclick="switchTab('summary',this)">📊 集計</button>
+  <button class="tab" onclick="switchTab('trend',this)">📈 推移</button>
+  <button class="tab" onclick="switchTab('analysis',this)">🔍 分析</button>
+  <button class="tab" onclick="switchTab('settings',this)">⚙️ 設定</button>
+</nav>
+
+<main class="main">
+
+<!-- ── 入力 ── -->
+<div id="tab-input" class="section active">
+  <div class="month-row">
+    <label>月：</label>
+    <select id="sel-month-input" onchange="renderInput()">
+      <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+      <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+      <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+      <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+    </select>
+    <label>病棟：</label>
+    <select id="sel-ward-input" onchange="renderInput()"></select>
+  </div>
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title" id="input-title">—</span>
+      <span class="hint">タップ → +1　　右下「－」→ −1</span>
+    </div>
+    <div class="card-body" style="padding:8px">
+      <div class="cross-wrap"><table class="cross-table" id="input-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 集計 ── -->
+<div id="tab-summary" class="section">
+  <div class="month-row">
+    <label>月：</label>
+    <select id="sel-month-summary" onchange="renderSummary()">
+      <option value="all">全期間</option>
+      <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+      <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+      <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+      <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+    </select>
+    <label>軸：</label>
+    <select id="sel-pivot" onchange="renderSummary()">
+      <option value="ward-scene">病棟 × 場面</option>
+      <option value="ward-role">病棟 × 職種</option>
+      <option value="role-scene">職種 × 場面</option>
+    </select>
+  </div>
+  <div class="metrics" id="summary-metrics"></div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="cross-title">クロス集計</span></div>
+    <div class="card-body" style="padding:8px">
+      <div class="cross-wrap"><table class="cross-table" id="cross-table"></table></div>
+      <div class="label-row" style="margin-top:8px">
+        <span class="legend-dot" style="background:#EAF2FB"></span>少
+        <span class="legend-dot" style="background:#C8DEFA"></span>中
+        <span class="legend-dot" style="background:#93BEF5"></span>多
+        <span class="legend-dot" style="background:#FDECEA"></span>最多
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">病棟別 合計ランキング</span></div>
+    <div class="card-body" style="padding:0"><table class="summary-table" id="ward-rank-table"></table></div>
+  </div>
+</div>
+
+<!-- ── 推移 ── -->
+<div id="tab-trend" class="section">
+  <div class="month-row">
+    <label>表示：</label>
+    <select id="sel-trend-group" onchange="renderTrend()">
+      <option value="ward">病棟別</option><option value="role">職種別</option><option value="scene">場面別</option>
+    </select>
+    <label>種別：</label>
+    <select id="sel-trend-type" onchange="renderTrend()">
+      <option value="line">折れ線</option><option value="bar">棒グラフ</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title" id="trend-title">月次推移</span></div>
+    <div class="card-body">
+      <div class="label-row" id="trend-legend"></div>
+      <div class="chart-wrap"><canvas id="trend-chart" role="img" aria-label="月次推移グラフ"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">場面別 月次推移</span></div>
+    <div class="card-body">
+      <div class="label-row" id="scene-trend-legend"></div>
+      <div class="chart-wrap"><canvas id="scene-trend-chart" role="img" aria-label="場面別推移グラフ"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 分析 ── -->
+<div id="tab-analysis" class="section">
+  <div class="month-row">
+    <label>月：</label>
+    <select id="sel-month-analysis" onchange="renderAnalysis()">
+      <option value="all">全期間</option>
+      <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+      <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+      <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+      <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">全体サマリー</span></div>
+    <div class="card-body" id="analysis-summary-body"></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">病棟別 自動コメント</span></div>
+    <div class="card-body"><div class="analysis-list" id="analysis-cards"></div></div>
+  </div>
+  <div class="card">
+    <div class="card-head"><span class="card-title">平均比（%）偏差グラフ</span></div>
+    <div class="card-body"><div class="chart-wrap" style="height:200px"><canvas id="deviation-chart" role="img" aria-label="偏差グラフ"></canvas></div></div>
+  </div>
+</div>
+
+<!-- ── 設定 ── -->
+<div id="tab-settings" class="section">
+
+  <!-- 病棟管理 -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">🏥 病棟の管理</span>
+      <span class="hint">名前をタップして直接編集できます</span>
+    </div>
+    <div class="card-body">
+      <div class="warn-box">⚠️ 病棟を削除すると、その病棟に入力済みのデータもすべて削除されます。</div>
+      <div class="ward-list" id="ward-list"></div>
+      <div class="add-ward-row" style="margin-top:12px">
+        <input type="text" class="add-ward-input" id="new-ward-input" placeholder="新しい病棟名を入力（例: 西6）" maxlength="10">
+        <button class="btn btn-primary" onclick="addWard()">＋ 追加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- パスワード変更 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">🔑 パスワード変更</span></div>
+    <div class="card-body">
+      <div class="section-label">新しい4桁のパスワード</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="pin-display" id="new-pin-display">
+          <div class="pin-dot" id="ndot-0"></div>
+          <div class="pin-dot" id="ndot-1"></div>
+          <div class="pin-dot" id="ndot-2"></div>
+          <div class="pin-dot" id="ndot-3"></div>
+        </div>
+        <span id="new-pin-status" style="font-size:12px;color:var(--text3)">4桁を入力してください</span>
+      </div>
+      <div class="numpad" style="max-width:240px;margin-top:14px">
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('1')" onclick="newPinInput('1')">1</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('2')" onclick="newPinInput('2')">2</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('3')" onclick="newPinInput('3')">3</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('4')" onclick="newPinInput('4')">4</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('5')" onclick="newPinInput('5')">5</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('6')" onclick="newPinInput('6')">6</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('7')" onclick="newPinInput('7')">7</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('8')" onclick="newPinInput('8')">8</button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('9')" onclick="newPinInput('9')">9</button>
+        <button class="numpad-btn empty" style="height:50px"></button>
+        <button class="numpad-btn" style="height:50px;font-size:18px" ontouchstart="newPinInput('0')" onclick="newPinInput('0')">0</button>
+        <button class="numpad-btn del" style="height:50px;font-size:16px" ontouchstart="newPinDel()" onclick="newPinDel()">⌫</button>
+      </div>
+      <div id="pw-change-result" style="font-size:12px;min-height:16px;margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- データ管理 -->
+  <div class="card">
+    <div class="card-head"><span class="card-title">💾 データ管理</span></div>
+    <div class="card-body">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-success" onclick="exportJSON()">💾 JSONで保存</button>
+        <button class="btn btn-ghost" onclick="importJSON()">📂 JSONを読み込む</button>
+        <button class="btn btn-danger" onclick="confirmReset()">🗑 全データリセット</button>
+      </div>
+      <div class="hint" style="margin-top:10px">保存したJSONファイルを共有サーバーに置いてください。次回読み込み時に復元されます。</div>
+    </div>
+  </div>
+
+</div><!-- /settings -->
+
+</main>
+
+<!-- Save Banner -->
+<div class="save-banner" id="save-banner">
+  ⚠️ 未保存
+  <button class="btn btn-success btn-sm" onclick="exportJSON()">今すぐ保存</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ══════════════════════════════════════════════
+// CONSTANTS
+// ══════════════════════════════════════════════
+const ROLES  = ['看護師','看護補助者','PT','OT','ST','歯科衛生士','その他'];
+const SCENES = ['廊下','階段','搬送時','体交時','リハビリ時','その他'];
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const PASTEL   = ['#85B7EB','#9FE1CB','#F0997B','#AFA9EC','#FAC775','#ED93B1','#97C459','#B4B2A9','#F4B8D1','#A8D8A8'];
+const PASTEL_S = ['#85B7EB','#B4B2A9','#F0997B','#9FE1CB','#AFA9EC','#FAC775'];
+const DEFAULT_WARDS = ['2北','2南','本3','本4','本5','分3','分4','分5'];
+// 初期パスワード '0000' のSHA-256ハッシュ（平文は保存しない）
+const DEFAULT_PIN_HASH = '9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0';
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let wards    = [...DEFAULT_WARDS];
+let pinHash  = DEFAULT_PIN_HASH;  // SHA-256ハッシュのみ保持（平文は持たない）
+let data     = makeEmptyData();
+let dirty    = false;
+let loggedIn = false;
+
+// SHA-256ハッシュ生成（Web Crypto API）
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function makeEmptyData() {
+  return Array.from({length:12}, () =>
+    Array.from({length: wards.length}, () =>
+      Array.from({length: ROLES.length}, () =>
+        Array(SCENES.length).fill(0))));
+}
+
+// ══════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════
+let pinBuffer = '';
+
+function numInput(d) {
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updateDots('dot', pinBuffer.length);
+  if(pinBuffer.length === 4) {
+    setTimeout(() => checkPin(), 120);
+  }
+}
+function numDel() {
+  if(pinBuffer.length === 0) return;
+  pinBuffer = pinBuffer.slice(0,-1);
+  updateDots('dot', pinBuffer.length);
+  document.getElementById('login-error').textContent='';
+}
+function updateDots(prefix, filled) {
+  for(let i=0;i<4;i++){
+    const el=document.getElementById(`${prefix}-${i}`);
+    el.classList.toggle('filled', i < filled);
+    el.classList.remove('error');
+  }
+}
+async function checkPin() {
+  const h = await sha256(pinBuffer);
+  if(h === pinHash) {
+    loggedIn = true;
+    document.getElementById('login-screen').classList.add('hidden');
+    renderWardSelects();
+    renderInput();
+  } else {
+    for(let i=0;i<4;i++) {
+      const el=document.getElementById(`dot-${i}`);
+      el.classList.remove('filled');
+      el.classList.add('error');
+    }
+    document.getElementById('login-error').textContent='パスワードが違います';
+    setTimeout(()=>{
+      pinBuffer='';
+      updateDots('dot',0);
+    },800);
+  }
+}
+function doLogout() {
+  if(dirty && !confirm('未保存のデータがあります。ログアウトしますか？')) return;
+  loggedIn=false;
+  pinBuffer='';
+  updateDots('dot',0);
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ══════════════════════════════════════════════
+// DIRTY FLAG
+// ══════════════════════════════════════════════
+function markDirty(){dirty=true;document.getElementById('save-banner').classList.add('show');}
+function markClean(){dirty=false;document.getElementById('save-banner').classList.remove('show');}
+
+// ══════════════════════════════════════════════
+// JSON I/O
+// ══════════════════════════════════════════════
+function exportJSON() {
+  const payload={version:2,exportedAt:new Date().toISOString(),wards,pinHash,data};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  const d=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+  a.download=`glove_check_${d}.json`;
+  a.click();
+  markClean();
+  showToast('✅ JSONファイルを保存しました');
+}
+function importJSON(){
+  // iPad Safari: input要素を都度作り直すことでonchangeが確実に発火する
+  const old = document.getElementById('file-input');
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.id = 'file-input';
+  // iPad SafariはMIMEタイプで判定するためtextも許可
+  input.accept = '.json,application/json,text/plain,text/*';
+  input.style.display = 'none';
+  input.addEventListener('change', onFileSelected);
+  old.parentNode.replaceChild(input, old);
+  // タッチイベントと非同期の兼ね合いでsetTimeoutを挟む
+  setTimeout(() => input.click(), 100);
+}
+
+function onFileSelected(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  // ファイル名チェック（iPadはMIMEが不定のため拡張子でも確認）
+  const name = file.name || '';
+  if (name && !name.match(/\.(json|txt)$/i)) {
+    showToast('❌ JSONファイルを選んでください');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(ev) {
+    let text = ev.target.result;
+    // BOM除去（iPadが付けることがある）
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    // 念のため前後の空白を除去
+    text = text.trim();
+
+    try {
+      const obj = JSON.parse(text);
+      if (!obj || typeof obj !== 'object') throw new Error('invalid');
+
+      if (Array.isArray(obj.wards) && obj.wards.length > 0) {
+        wards = [...obj.wards];
+      }
+      // pinHash（ハッシュ）優先、旧version2の平文passwordはハッシュ化して移行
+      if (obj.pinHash && typeof obj.pinHash === 'string') {
+        pinHash = obj.pinHash;
+      } else if (obj.password && typeof obj.password === 'string') {
+        // 旧フォーマット互換: 平文→ハッシュに変換して取り込む
+        sha256(obj.password).then(h => { pinHash = h; });
+      }
+      if (obj.data) {
+        data = normalizeData(obj.data);
+      }
+
+      markClean();
+      renderWardSelects();
+      renderAll();
+      showToast('✅ データを読み込みました');
+    } catch(err) {
+      console.error('JSON parse error:', err, '\ntext:', text.slice(0,200));
+      showToast('❌ ファイルの形式が正しくありません。JSONファイルを選んでください');
+    }
+  };
+
+  reader.onerror = function() {
+    showToast('❌ ファイルの読み取りに失敗しました。もう一度お試しください');
+  };
+
+  // UTF-8で読み込み（iPad Safariで文字化け防止）
+  reader.readAsText(file, 'UTF-8');
+}
+
+// データ正規化：wardの増減に対応
+function normalizeData(raw) {
+  return Array.from({length:12},(_,m)=>
+    Array.from({length:wards.length},(_,w)=>
+      Array.from({length:ROLES.length},(_,r)=>
+        Array.from({length:SCENES.length},(_,s)=>
+          (raw[m]&&raw[m][w]&&raw[m][w][r]&&raw[m][w][r][s]!=null)?raw[m][w][r][s]:0
+        ))));
+}
+
+// ══════════════════════════════════════════════
+// WARD MANAGEMENT
+// ══════════════════════════════════════════════
+function renderWardSelects() {
+  ['sel-ward-input'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const prev=el.value;
+    el.innerHTML=wards.map((w,i)=>`<option value="${i}">${w}</option>`).join('');
+    if(prev<wards.length) el.value=prev;
+  });
+}
+
+function renderWardList() {
+  const container=document.getElementById('ward-list');
+  if(!container)return;
+  container.innerHTML=wards.map((w,i)=>{
+    // 各病棟の全期間合計
+    let total=0;
+    for(let m=0;m<12;m++) for(let r=0;r<ROLES.length;r++) for(let s=0;s<SCENES.length;s++)
+      total+=(data[m][i]&&data[m][i][r]&&data[m][i][r][s])||0;
+    return `<div class="ward-item" id="ward-item-${i}">
+      <span class="ward-item-num">${i+1}</span>
+      <input class="ward-item-name" id="ward-name-${i}" type="text" value="${w}" maxlength="10"
+        onblur="saveWardName(${i})"
+        onkeydown="if(event.key==='Enter')this.blur()">
+      <span class="ward-item-tag">${total}件</span>
+      <div class="ward-item-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editWardName(${i})">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteWard(${i})">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function editWardName(i) {
+  const inp=document.getElementById(`ward-name-${i}`);
+  inp.focus();inp.select();
+  inp.classList.add('editing');
+}
+function saveWardName(i) {
+  const inp=document.getElementById(`ward-name-${i}`);
+  const val=inp.value.trim();
+  if(!val){inp.value=wards[i];inp.classList.remove('editing');return;}
+  inp.classList.remove('editing');
+  if(wards[i]===val)return;
+  wards[i]=val;
+  markDirty();
+  renderWardSelects();
+  renderWardList();
+  showToast(`✅ 病棟名を「${val}」に変更しました`);
+}
+
+function addWard() {
+  const inp=document.getElementById('new-ward-input');
+  const name=inp.value.trim();
+  if(!name){showToast('⚠️ 病棟名を入力してください');return;}
+  if(wards.includes(name)){showToast('⚠️ 同じ名前の病棟が既にあります');return;}
+  if(wards.length>=12){showToast('⚠️ 病棟は最大12まで登録できます');return;}
+  wards.push(name);
+  // dataに新しいward列を追加
+  for(let m=0;m<12;m++){
+    data[m].push(Array.from({length:ROLES.length},()=>Array(SCENES.length).fill(0)));
+  }
+  inp.value='';
+  markDirty();
+  renderWardSelects();
+  renderWardList();
+  showToast(`✅「${name}」を追加しました`);
+}
+
+function deleteWard(i) {
+  const name=wards[i];
+  let total=0;
+  for(let m=0;m<12;m++) for(let r=0;r<ROLES.length;r++) for(let s=0;s<SCENES.length;s++)
+    total+=(data[m][i]&&data[m][i][r]&&data[m][i][r][s])||0;
+
+  const msg = total>0
+    ? `「${name}」を削除します。\nこの病棟のデータ（${total}件）もすべて削除されます。\n本当によろしいですか？`
+    : `「${name}」を削除します。よろしいですか？`;
+  if(!confirm(msg))return;
+
+  wards.splice(i,1);
+  for(let m=0;m<12;m++) data[m].splice(i,1);
+  markDirty();
+  renderWardSelects();
+  renderWardList();
+  showToast(`🗑「${name}」を削除しました`);
+}
+
+// ══════════════════════════════════════════════
+// PASSWORD CHANGE
+// ══════════════════════════════════════════════
+let newPinBuffer='';
+function newPinInput(d) {
+  if(newPinBuffer.length>=4)return;
+  newPinBuffer+=d;
+  updateDots('ndot',newPinBuffer.length);
+  if(newPinBuffer.length===4){
+    const entered = newPinBuffer;
+    sha256(entered).then(h=>{
+      pinHash = h;
+      markDirty();
+      document.getElementById('new-pin-status').textContent='';
+      const res=document.getElementById('pw-change-result');
+      res.style.color='var(--green)';
+      res.textContent='✅ パスワードを変更しました。JSONを保存してください。';
+      setTimeout(()=>{newPinBuffer='';updateDots('ndot',0);},1200);
+    });
+  }
+}
+function newPinDel(){
+  if(!newPinBuffer.length)return;
+  newPinBuffer=newPinBuffer.slice(0,-1);
+  updateDots('ndot',newPinBuffer.length);
+  document.getElementById('pw-change-result').textContent='';
+}
+
+// ══════════════════════════════════════════════
+// RESET
+// ══════════════════════════════════════════════
+function confirmReset(){
+  if(confirm('全データをリセットします。この操作は取り消せません。よろしいですか？')){
+    data=makeEmptyData();
+    markDirty();
+    renderAll();
+    showToast('🗑 全データをリセットしました');
+  }
+}
+
+// ══════════════════════════════════════════════
+// AGGREGATES
+// ══════════════════════════════════════════════
+function getMonthSlice(mIdx){
+  if(mIdx==='all'){
+    const r=Array.from({length:wards.length},()=>
+      Array.from({length:ROLES.length},()=>Array(SCENES.length).fill(0)));
+    for(let m=0;m<12;m++) for(let w=0;w<wards.length;w++)
+      for(let ro=0;ro<ROLES.length;ro++) for(let s=0;s<SCENES.length;s++)
+        r[w][ro][s]+=(data[m][w]&&data[m][w][ro]&&data[m][w][ro][s])||0;
+    return r;
+  }
+  const m=parseInt(mIdx);
+  return Array.from({length:wards.length},(_,w)=>
+    Array.from({length:ROLES.length},(_,r)=>
+      Array.from({length:SCENES.length},(_,s)=>(data[m][w]&&data[m][w][r]&&data[m][w][r][s])||0)));
+}
+function wardTotal(sl,w){let t=0;for(let r=0;r<ROLES.length;r++)for(let s=0;s<SCENES.length;s++)t+=sl[w][r][s];return t;}
+function roleTotal(sl,r){let t=0;for(let w=0;w<wards.length;w++)for(let s=0;s<SCENES.length;s++)t+=sl[w][r][s];return t;}
+function sceneTotal(sl,s){let t=0;for(let w=0;w<wards.length;w++)for(let r=0;r<ROLES.length;r++)t+=sl[w][r][s];return t;}
+function grandTotal(sl){let t=0;wards.forEach((_,w)=>t+=wardTotal(sl,w));return t;}
+function heatLevel(v,mx){if(!v)return 0;if(!mx)return 0;const r=v/mx;return r>=.75?4:r>=.45?3:r>=.2?2:1;}
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+function switchTab(name,el){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='input')renderInput();
+  if(name==='summary')renderSummary();
+  if(name==='trend')renderTrend();
+  if(name==='analysis')renderAnalysis();
+  if(name==='settings'){renderWardList();}
+}
+function renderAll(){renderInput();renderSummary();renderTrend();renderAnalysis();}
+
+// ══════════════════════════════════════════════
+// TAB: 入力
+// ══════════════════════════════════════════════
+function renderInput(){
+  const mi=parseInt(document.getElementById('sel-month-input').value);
+  const wi=parseInt(document.getElementById('sel-ward-input').value)||0;
+  const wardName=wards[wi]||'—';
+  document.getElementById('input-title').textContent=`${MONTHS[mi]}　${wardName}病棟`;
+
+  const tbl=document.getElementById('input-table');
+  let html=`<thead><tr><th class="row-header">職種 \\ 場面</th>`;
+  SCENES.forEach(s=>html+=`<th>${s}</th>`);
+  html+=`<th>小計</th></tr></thead><tbody>`;
+
+  ROLES.forEach((role,ri)=>{
+    html+=`<tr><td class="label-cell">${role}</td>`;
+    let rowSum=0;
+    SCENES.forEach((_,si)=>{
+      const v=(data[mi][wi]&&data[mi][wi][ri]&&data[mi][wi][ri][si])||0;
+      rowSum+=v;
+      const hl=heatLevel(v,20);
+      html+=`<td>
+        <div class="count-cell heat-${hl}"
+             ontouchstart="incCell(${mi},${wi},${ri},${si},1,this)"
+             onclick="incCell(${mi},${wi},${ri},${si},1,this)">
+          <span class="count-num" id="cn-${mi}-${wi}-${ri}-${si}">${v}</span>
+          <span class="minus-btn"
+            ontouchstart="event.stopPropagation();incCell(${mi},${wi},${ri},${si},-1,this.parentElement)"
+            onclick="event.stopPropagation();incCell(${mi},${wi},${ri},${si},-1,this.parentElement)">－</span>
+        </div></td>`;
+    });
+    html+=`<td class="total-cell" id="rt-${mi}-${wi}-${ri}">${rowSum}</td></tr>`;
+  });
+  html+=`<tr class="total-row"><td class="label-cell">合計</td>`;
+  SCENES.forEach((_,si)=>{
+    let col=0;ROLES.forEach((_,ri)=>col+=(data[mi][wi]&&data[mi][wi][ri]&&data[mi][wi][ri][si])||0);
+    html+=`<td id="ct-${mi}-${wi}-${si}">${col}</td>`;
+  });
+  html+=`<td id="gt-${mi}-${wi}">${wardTotal(getMonthSlice(String(mi)),wi)}</td></tr></tbody>`;
+  tbl.innerHTML=html;
+}
+
+function incCell(mi,wi,ri,si,delta,cellEl){
+  if(!data[mi][wi]||!data[mi][wi][ri])return;
+  data[mi][wi][ri][si]=Math.max(0,(data[mi][wi][ri][si]||0)+delta);
+  markDirty();
+  const v=data[mi][wi][ri][si];
+  const numEl=document.getElementById(`cn-${mi}-${wi}-${ri}-${si}`);
+  if(numEl)numEl.textContent=v;
+  cellEl.className=`count-cell heat-${heatLevel(v,20)}`;
+  let rSum=0;SCENES.forEach((_,s)=>rSum+=(data[mi][wi][ri][s]||0));
+  const rt=document.getElementById(`rt-${mi}-${wi}-${ri}`);if(rt)rt.textContent=rSum;
+  let cSum=0;ROLES.forEach((_,r)=>cSum+=(data[mi][wi][r]&&data[mi][wi][r][si])||0);
+  const ct=document.getElementById(`ct-${mi}-${wi}-${si}`);if(ct)ct.textContent=cSum;
+  const gt=document.getElementById(`gt-${mi}-${wi}`);
+  if(gt)gt.textContent=wardTotal(getMonthSlice(String(mi)),wi);
+}
+
+// ══════════════════════════════════════════════
+// TAB: 集計
+// ══════════════════════════════════════════════
+function renderSummary(){
+  const mIdx=document.getElementById('sel-month-summary').value;
+  const pivot=document.getElementById('sel-pivot').value;
+  const sl=getMonthSlice(mIdx);
+  const gt=grandTotal(sl);
+  const wt=wards.map((_,w)=>wardTotal(sl,w));
+  const rt=ROLES.map((_,r)=>roleTotal(sl,r));
+  const st=SCENES.map((_,s)=>sceneTotal(sl,s));
+  const maxW=wards[wt.indexOf(Math.max(...wt))]||'—';
+  const maxR=ROLES[rt.indexOf(Math.max(...rt))];
+  const maxS=SCENES[st.indexOf(Math.max(...st))];
+
+  document.getElementById('summary-metrics').innerHTML=`
+    <div class="metric metric-warn"><div class="metric-label">総件数</div><div class="metric-value">${gt.toLocaleString()}</div><div class="metric-sub">不要手袋装着</div></div>
+    <div class="metric"><div class="metric-label">最多病棟</div><div class="metric-value" style="font-size:18px">${maxW}</div><div class="metric-sub">${Math.max(...wt).toLocaleString()}件</div></div>
+    <div class="metric"><div class="metric-label">最多場面</div><div class="metric-value" style="font-size:16px">${maxS}</div><div class="metric-sub">${Math.max(...st).toLocaleString()}件</div></div>
+    <div class="metric"><div class="metric-label">最多職種</div><div class="metric-value" style="font-size:16px">${maxR}</div><div class="metric-sub">${Math.max(...rt).toLocaleString()}件</div></div>`;
+
+  let rowLabels,colLabels,getVal;
+  if(pivot==='ward-scene'){
+    rowLabels=wards;colLabels=SCENES;
+    getVal=(ri,ci)=>{let t=0;ROLES.forEach((_,r)=>t+=sl[ri][r][ci]);return t;};
+    document.getElementById('cross-title').textContent='病棟 × 場面';
+  }else if(pivot==='ward-role'){
+    rowLabels=wards;colLabels=ROLES;
+    getVal=(ri,ci)=>{let t=0;SCENES.forEach((_,s)=>t+=sl[ri][ci][s]);return t;};
+    document.getElementById('cross-title').textContent='病棟 × 職種';
+  }else{
+    rowLabels=ROLES;colLabels=SCENES;
+    getVal=(ri,ci)=>{let t=0;wards.forEach((_,w)=>t+=sl[w][ri][ci]);return t;};
+    document.getElementById('cross-title').textContent='職種 × 場面';
+  }
+
+  const matrix=rowLabels.map((_,ri)=>colLabels.map((_,ci)=>getVal(ri,ci)));
+  const maxVal=Math.max(...matrix.flat(),1);
+
+  let html=`<thead><tr><th class="row-header">＼</th>`;
+  colLabels.forEach(c=>html+=`<th>${c}</th>`);
+  html+=`<th>合計</th></tr></thead><tbody>`;
+  matrix.forEach((row,ri)=>{
+    const rSum=row.reduce((a,b)=>a+b,0);
+    html+=`<tr><td class="label-cell">${rowLabels[ri]}</td>`;
+    row.forEach(v=>{
+      html+=`<td><div class="count-cell heat-${heatLevel(v,maxVal)}" style="width:52px;height:38px;cursor:default"><span class="count-num" style="font-size:14px">${v}</span></div></td>`;
+    });
+    html+=`<td class="total-cell">${rSum}</td></tr>`;
+  });
+  html+=`<tr class="total-row"><td class="label-cell">合計</td>`;
+  colLabels.forEach((_,ci)=>html+=`<td>${matrix.reduce((a,row)=>a+row[ci],0)}</td>`);
+  html+=`<td>${gt}</td></tr></tbody>`;
+  document.getElementById('cross-table').innerHTML=html;
+
+  const sorted=wt.map((t,i)=>({w:i,t})).sort((a,b)=>b.t-a.t);
+  const maxT=sorted[0]?.t||1;
+  let rankHtml=`<thead><tr><th>#</th><th>病棟</th><th>件数</th><th style="width:110px">割合</th></tr></thead><tbody>`;
+  sorted.forEach(({w,t},i)=>{
+    const pct=gt>0?Math.round(t/gt*100):0;
+    rankHtml+=`<tr>
+      <td><span class="rank-num">${i+1}</span></td>
+      <td style="font-weight:500">${wards[w]}</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:700">${t.toLocaleString()}</td>
+      <td><span class="pct-bar" style="width:70px"><span class="pct-bar-fill" style="width:${Math.round(t/maxT*100)}%"></span></span> ${pct}%</td>
+    </tr>`;
+  });
+  rankHtml+='</tbody>';
+  document.getElementById('ward-rank-table').innerHTML=rankHtml;
+}
+
+// ══════════════════════════════════════════════
+// TAB: 推移
+// ══════════════════════════════════════════════
+const charts={};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderTrend(){
+  const group=document.getElementById('sel-trend-group').value;
+  const type=document.getElementById('sel-trend-type').value;
+  let datasets,legendLabels,colors;
+
+  if(group==='ward'){
+    legendLabels=wards;colors=PASTEL;
+    datasets=wards.map((w,wi)=>({
+      label:w,data:MONTHS.map((_,m)=>wardTotal(getMonthSlice(String(m)),wi)),
+      borderColor:colors[wi%colors.length],backgroundColor:type==='bar'?colors[wi%colors.length]+'cc':'transparent',
+      tension:.35,pointRadius:3,borderWidth:2,fill:false
+    }));
+    document.getElementById('trend-title').textContent='病棟別 月次推移';
+  }else if(group==='role'){
+    legendLabels=ROLES;colors=PASTEL;
+    datasets=ROLES.map((r,ri)=>({
+      label:r,data:MONTHS.map((_,m)=>roleTotal(getMonthSlice(String(m)),ri)),
+      borderColor:colors[ri%colors.length],backgroundColor:type==='bar'?colors[ri%colors.length]+'cc':'transparent',
+      tension:.35,pointRadius:3,borderWidth:2,fill:false
+    }));
+    document.getElementById('trend-title').textContent='職種別 月次推移';
+  }else{
+    legendLabels=SCENES;colors=PASTEL_S;
+    datasets=SCENES.map((s,si)=>({
+      label:s,data:MONTHS.map((_,m)=>sceneTotal(getMonthSlice(String(m)),si)),
+      borderColor:colors[si],backgroundColor:type==='bar'?colors[si]+'cc':'transparent',
+      tension:.35,pointRadius:3,borderWidth:2,fill:false
+    }));
+    document.getElementById('trend-title').textContent='場面別 月次推移';
+  }
+
+  document.getElementById('trend-legend').innerHTML=legendLabels.map((l,i)=>
+    `<span><span class="legend-dot" style="background:${colors[i%colors.length]}"></span> ${l}</span>`).join('');
+  destroyChart('trend');
+  charts['trend']=new Chart(document.getElementById('trend-chart'),{
+    type:type==='bar'?'bar':'line',data:{labels:MONTHS,datasets},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+
+  const scDs=SCENES.map((s,si)=>({
+    label:s,data:MONTHS.map((_,m)=>sceneTotal(getMonthSlice(String(m)),si)),
+    borderColor:PASTEL_S[si],backgroundColor:'transparent',tension:.35,pointRadius:2,borderWidth:2
+  }));
+  document.getElementById('scene-trend-legend').innerHTML=SCENES.map((s,i)=>
+    `<span><span class="legend-dot" style="background:${PASTEL_S[i]}"></span> ${s}</span>`).join('');
+  destroyChart('sceneTrend');
+  charts['sceneTrend']=new Chart(document.getElementById('scene-trend-chart'),{
+    type:'line',data:{labels:MONTHS,datasets:scDs},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{display:false}},y:{beginAtZero:true,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}}}}
+  });
+}
+
+// ══════════════════════════════════════════════
+// TAB: 分析
+// ══════════════════════════════════════════════
+function renderAnalysis(){
+  const mIdx=document.getElementById('sel-month-analysis').value;
+  const sl=getMonthSlice(mIdx);
+  const gt=grandTotal(sl);
+  const wt=wards.map((_,w)=>wardTotal(sl,w));
+  const avg=wards.length>0?wt.reduce((a,b)=>a+b,0)/wards.length:0;
+  const rt=ROLES.map((_,r)=>roleTotal(sl,r));
+  const st=SCENES.map((_,s)=>sceneTotal(sl,s));
+  const maxR=ROLES[rt.indexOf(Math.max(...rt))];
+  const maxS=SCENES[st.indexOf(Math.max(...st))];
+
+  document.getElementById('analysis-summary-body').innerHTML=`
+    <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;line-height:2">
+      <span>対象：<strong>${mIdx==='all'?'全期間':MONTHS[parseInt(mIdx)]}</strong></span>
+      <span>総件数：<strong style="color:var(--red)">${gt.toLocaleString()}件</strong></span>
+      <span>平均（${wards.length}病棟）：<strong>${Math.round(avg).toLocaleString()}件</strong></span>
+      <span>最多病棟：<strong>${wards[wt.indexOf(Math.max(...wt))]||'—'}</strong>（${Math.max(...wt,0).toLocaleString()}件）</span>
+      <span>最多職種：<strong>${maxR}</strong></span>
+      <span>最多場面：<strong>${maxS}</strong></span>
+    </div>`;
+
+  const sorted=[...wt.map((t,i)=>({w:i,t}))].sort((a,b)=>b.t-a.t);
+  document.getElementById('analysis-cards').innerHTML=sorted.map(({w,t})=>{
+    const wrT=ROLES.map((_,r)=>{let s=0;SCENES.forEach((_,si)=>s+=sl[w][r][si]);return s;});
+    const wsT=SCENES.map((_,si)=>{let s=0;ROLES.forEach((_,r)=>s+=sl[w][r][si]);return s;});
+    const mxR=ROLES[wrT.indexOf(Math.max(...wrT))];
+    const mxS=SCENES[wsT.indexOf(Math.max(...wsT))];
+    const ratio=avg>0?t/avg:1;
+    let cls,badge,lbl;
+    if(ratio>=1.3){cls='a-card-warn';badge='badge-warn';lbl='要注意';}
+    else if(ratio<0.8){cls='a-card-good';badge='badge-good';lbl='良好';}
+    else{cls='a-card-notice';badge='badge-notice';lbl='注目';}
+    return `<div class="a-card ${cls}">
+      <div class="a-card-title">${wards[w]}<span class="badge ${badge}">${lbl}</span>
+        <span style="font-size:11px;font-weight:400;color:var(--text2)">合計 ${t.toLocaleString()}件（平均比 ${Math.round(ratio*100)}%）</span>
+      </div>
+      <div class="a-card-body">
+        最多職種：<strong>${mxR}</strong>（${Math.max(...wrT).toLocaleString()}件）　
+        最多場面：<strong>${mxS}</strong>（${Math.max(...wsT).toLocaleString()}件）<br>
+        → ${wards[w]}では<strong>${mxR}</strong>が<strong>${mxS}</strong>で装着している傾向があります
+      </div>
+    </div>`;
+  }).join('');
+
+  destroyChart('deviation');
+  charts['deviation']=new Chart(document.getElementById('deviation-chart'),{
+    type:'bar',
+    data:{labels:wards,datasets:[{
+      label:'平均との差',
+      data:wt.map(t=>Math.round(t-avg)),
+      backgroundColor:wt.map(t=>t>=avg?'#F0997B99':'#9FE1CB99'),
+      borderColor:wt.map(t=>t>=avg?'#E05C5C':'#4CAF82'),
+      borderWidth:1,borderRadius:4
+    }]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}},
+              y:{ticks:{font:{size:10}},grid:{display:false}}}}
+  });
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg){
+  const b=document.getElementById('save-banner');
+  const prev=b.innerHTML;
+  b.innerHTML=msg;b.classList.add('show');
+  setTimeout(()=>{
+    b.classList.remove('show');
+    setTimeout(()=>{b.innerHTML=prev;if(dirty)b.classList.add('show');},300);
+  },2500);
+}
+
+// ══════════════════════════════════════════════
+// BEFOREUNLOAD
+// ══════════════════════════════════════════════
+window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
+</script>
+
+<script>
+// ── Service Worker 登録（PWA・オフライン対応）──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.warn('SW registration failed:', err));
+  });
+}
+</script>
+</body>
+</html>
